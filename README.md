@@ -1,4 +1,4 @@
-# AIoD SDK Computational Asset Uploader
+# AIoD Computational Asset Uploader Tool
 
 A Flask-based web application for preparing, validating, registering, reviewing, editing, and deleting AIoD `computational_asset` metadata through the official `aiondemand` Python SDK and selected AIoD REST API endpoints.
 
