@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <p class="eyebrow">AIoD Metadata Catalogue</p>
+    <h1>Register a Computational Asset</h1>
+    <p class="lead">
+      Use this form to prepare and submit metadata for a Computational Asset through the
+      <code>aiondemand</code> Python SDK. The asset itself should remain hosted on a stable
+      external source such as a repository, landing page, or archive.
+    </p>
+  </div>
+  <div class="hero-panel">
+    <strong>Recommended workflow</strong>
+    <ol>
+      <li>Find or enter the related Project identifier.</li>
+      <li>Complete the required metadata fields.</li>
+      <li>Preview the JSON payload.</li>
+      <li>Submit the asset to AIoD.</li>
+      <li>Verify the returned identifier.</li>
+    </ol>
+  </div>
+</section>
+
+{% if message %}
+  <div class="{% if 'failed' in message|lower or 'not confirmed' in message|lower %}warn{% else %}ok{% endif %}">
+    {{ message }}
+  </div>
+{% endif %}
+
+{% if error %}
+  <pre class="error">{{ error }}</pre>
+{% endif %}
+
+{% if result is not none %}
+<details class="card response-panel">
+  <summary>
+    <span class="response-caret" aria-hidden="true"></span>
+    <span>SDK response</span>
+  </summary>
+
+  <div class="response-panel-body">
+    {% if identifier %}
+      <div class="ok">
+        <strong>Identifier found:</strong> <code>{{ identifier }}</code><br>
+        It has also been saved to <code>last_computational_asset_identifier.txt</code>.
+      </div>
+      <form method="post" action="/asset" class="inline-form">
+        <input type="hidden" name="identifier" value="{{ identifier }}">
+        <input type="hidden" name="version" value="{{ form.api_version }}">
+        <button class="primary" type="submit">Verify asset with get_asset()</button>
+      </form>
+    {% else %}
+      <div class="warn">
+        No asset identifier was found in the SDK response. If the response contains an HTTP error,
+        the asset was not created.
+      </div>
+    {% endif %}
+
+    {% if verification %}
+      <h3>Post-submission verification</h3>
+      {% if verification.confirmed %}
+        <div class="ok"><strong>Confirmed:</strong> {{ verification.reason }}</div>
+      {% else %}
+        <div class="warn"><strong>Not confirmed:</strong> {{ verification.reason }}</div>
+      {% endif %}
+      <pre>{{ verification_json }}</pre>
+    {% endif %}
+
+    <h3>SDK response detail</h3>
+    <pre>{{ result_json }}</pre>
+  </div>
+</details>
+{% endif %}
+
+<section class="layout-two">
+<form method="post" class="card form-card">
+  <div class="section-heading">
+    <h2>Basic metadata</h2>
+    <p>Only <strong>Name</strong> is required by the AIoD schema. Fields marked with <strong>*</strong> are recommended for a clean catalogue entry.</p>
+  </div>
+
+  <div class="form-grid">
+    <div class="field full">
+      <label for="name">Name *</label>
+      <input
+        id="name"
+        name="name"
+        value="{{ form.name }}"
+        required
+        maxlength="256"
+        placeholder="Example: Secure Data Processing Service"
+      >
+      <small>Human-readable name of the computational asset. Schema field: <code>name</code>.</small>
+    </div>
+
+    <div class="field full">
+      <div class="field-label-row">
+        <label for="description_plain">Description plain text</label>
+        <button
+          class="vocabulary-info-button field-info-button"
+          type="button"
+          data-field-help="Description is an object with plain and html text. Ideally only one format is filled, or both contain the same content with different formatting."
+          aria-label="Show information about description"
+        >i</button>
+      </div>
+      <textarea
+        id="description_plain"
+        name="description_plain"
+        rows="6"
+        maxlength="65535"
+        placeholder="Describe what the asset does, who can use it, and in which scenario it is useful."
+      >{{ form.description_plain or form.description }}</textarea>
+      <small>Sent as <code>description.plain</code>. Keep it clear and neutral.</small>
+    </div>
+
+    <div class="field full">
+      <label for="description_html">Description HTML</label>
+      <textarea
+        id="description_html"
+        name="description_html"
+        rows="5"
+        maxlength="65535"
+        placeholder="<p>Text with <strong>HTML formatting</strong>.</p>"
+      >{{ form.description_html }}</textarea>
+      <small>Optional. Use only when HTML formatting is needed.</small>
+    </div>
+
+    <div class="field">
+      <label for="same_as">Canonical URL / Same as</label>
+      <input
+        id="same_as"
+        name="same_as"
+        type="url"
+        value="{{ form.same_as }}"
+        maxlength="256"
+        placeholder="https://example.org/resources/my-computational-asset"
+      >
+      <small>Reference web page that unambiguously identifies this asset.</small>
+    </div>
+
+    <div class="field">
+      <label for="date_published">Date published</label>
+      <input
+        id="date_published"
+        name="date_published"
+        type="date"
+        value="{{ form.date_published }}"
+      >
+      <small>The app converts this to the datetime format expected by AIoD.</small>
+    </div>
+
+    <div class="field">
+      <label for="asset_type">Computational asset type</label>
+      <select
+        id="asset_type"
+        name="asset_type"
+        class="searchable-select"
+        data-search-placeholder="Search computational asset types"
+        data-empty-label="No computational asset type selected"
+        data-search-label="Search computational asset types"
+      >
+        {% set selected_type = form.asset_type or 'storage' %}
+        <option value="">Select a computational asset type</option>
+        {% if computational_asset_type_options %}
+          {% for option in computational_asset_type_options %}
+            <option value="{{ option.value }}" {% if option.value == selected_type %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
+        {% else %}
+          <option disabled>Computational asset types could not be loaded from AIoD.</option>
+        {% endif %}
+      </select>
+      <small>Controlled AIoD vocabulary loaded from <code>/computational_asset_types</code>.</small>
+    </div>
+
+    <div class="field">
+      <label for="license">License</label>
+      <select
+        id="license"
+        name="license"
+        class="searchable-select"
+        data-search-placeholder="Search licenses"
+        data-empty-label="No license selected"
+        data-search-label="Search licenses"
+      >
+        <option value="">Select a license</option>
+        {% if license_options %}
+          {% for option in license_options %}
+            <option value="{{ option.value }}" {% if option.value == form.license %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
+        {% else %}
+          <option disabled>Licenses could not be loaded from AIoD.</option>
+        {% endif %}
+      </select>
+      <small>Controlled AIoD vocabulary loaded from <code>/licenses</code>.</small>
+    </div>
+
+    <div class="field">
+      <label for="asset_version">Version</label>
+      <input
+        id="asset_version"
+        name="asset_version"
+        value="{{ form.asset_version }}"
+        maxlength="256"
+        placeholder="Example: 1.0.0"
+      >
+    </div>
+
+    <div class="field check full">
+      <label>
+        <input type="checkbox" name="is_accessible_for_free" {% if form.is_accessible_for_free == 'on' %}checked{% endif %}>
+        Is accessible for free
+      </label>
+      <small>Signals that the asset is accessible at no cost.</small>
+    </div>
+  </div>
+
+  <div class="section-heading">
+    <h2>Classification</h2>
+    <p>Use one value per line. Taxonomy fields must use AIoD-accepted terms.</p>
+  </div>
+
+  <div class="form-grid">
+    <div class="field">
+      <label for="keyword">Keywords</label>
+      <textarea
+        id="keyword"
+        name="keyword"
+        rows="5"
+        placeholder="data processing&#10;interoperability&#10;secure infrastructure"
+      >{{ form.keyword }}</textarea>
+    </div>
+
+    <div class="field">
+      <label for="alternate_name">Alternate names</label>
+      <textarea
+        id="alternate_name"
+        name="alternate_name"
+        rows="5"
+        placeholder="Short name&#10;Common alias"
+      >{{ form.alternate_name }}</textarea>
+    </div>
+
+    <div class="field">
+      <label for="application_area">Application areas</label>
+      {% set selected_application_areas = form.application_area.splitlines() if form.application_area else [] %}
+      <select
+        id="application_area"
+        name="application_area"
+        class="multi-select"
+        multiple
+        size="8"
+      >
+        {% if application_area_options %}
+          {% for option in application_area_options %}
+            <option value="{{ option.value }}" {% if option.value in selected_application_areas %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
+        {% else %}
+          <option disabled>Application areas could not be loaded from AIoD.</option>
+        {% endif %}
+      </select>
+      <small>Controlled AIoD vocabulary loaded from <code>/application_areas</code>. Select one or more values.</small>
+    </div>
+
+    <div class="field">
+      <div class="field-label-row">
+        <label for="industrial_sector">Industrial sectors</label>
+        <button class="vocabulary-info-button" type="button" data-vocabulary-info="industrialSector" aria-label="Open industrial sector reference">i</button>
+      </div>
+      {% set selected_industrial_sectors = form.industrial_sector.splitlines() if form.industrial_sector else [] %}
+      <select
+        id="industrial_sector"
+        name="industrial_sector"
+        class="multi-select"
+        multiple
+        size="8"
+      >
+        {% if industrial_sector_options %}
+          {% for option in industrial_sector_options %}
+            <option value="{{ option.value }}" {% if option.value in selected_industrial_sectors %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
+        {% else %}
+          <option disabled>Industrial sectors could not be loaded from AIoD.</option>
+        {% endif %}
+      </select>
+      <small>Top-level AIoD industrial sector terms loaded from <code>/industrial_sectors</code>.</small>
+    </div>
+
+    <div class="field">
+      <div class="field-label-row">
+        <label for="research_area">Research areas</label>
+        <button class="vocabulary-info-button" type="button" data-vocabulary-info="researchArea" aria-label="Open research area reference">i</button>
+      </div>
+      {% set selected_research_areas = form.research_area.splitlines() if form.research_area else [] %}
+      <select
+        id="research_area"
+        name="research_area"
+        class="multi-select"
+        multiple
+        size="8"
+      >
+        {% if research_area_options %}
+          {% for option in research_area_options %}
+            <option value="{{ option.value }}" {% if option.value in selected_research_areas %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
+        {% else %}
+          <option disabled>Research areas could not be loaded from AIoD.</option>
+        {% endif %}
+      </select>
+      <small>Top-level AIoD research area terms loaded from <code>/research_areas</code>.</small>
+    </div>
+
+    <div class="field">
+      <div class="field-label-row">
+        <label for="scientific_domain">Scientific domains</label>
+        <button class="vocabulary-info-button" type="button" data-vocabulary-info="scientificDomain" aria-label="Open scientific domain reference">i</button>
+      </div>
+      {% set selected_scientific_domains = form.scientific_domain.splitlines() if form.scientific_domain else [] %}
+      <select
+        id="scientific_domain"
+        name="scientific_domain"
+        class="multi-select"
+        multiple
+        size="8"
+      >
+        {% if scientific_domain_options %}
+          {% for option in scientific_domain_options %}
+            <option value="{{ option.value }}" {% if option.value in selected_scientific_domains %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
+        {% else %}
+          <option disabled>Scientific domains could not be loaded from AIoD.</option>
+        {% endif %}
+      </select>
+      <small>Top-level AIoD scientific domain terms loaded from <code>/scientific_domains</code>.</small>
+    </div>
+  </div>
+
+  <div class="section-heading">
+    <h2>Relations</h2>
+    <p>Use one AIoD identifier per line. The old "Related Project identifier" field is kept as a shortcut for <code>is_part_of</code>.</p>
+  </div>
+
+  <div class="form-grid">
+    <div class="field full">
+      <label for="project_identifier">Related Project identifier</label>
+      <input
+        id="project_identifier"
+        name="project_identifier"
+        value="{{ form.project_identifier }}"
+        placeholder="Example: proj_abc123..."
+      >
+      <small>Shortcut. This value is inserted into <code>is_part_of</code>.</small>
+    </div>
+
+    <div class="field">
+      <label for="is_part_of">Is part of</label>
+      <textarea
+        id="is_part_of"
+        name="is_part_of"
+        rows="5"
+        placeholder="proj_abc123..."
+      >{{ form.is_part_of }}</textarea>
+      <small>Parent AIoD resource identifiers.</small>
+    </div>
+
+    <div class="field">
+      <label for="has_part">Has part</label>
+      <textarea
+        id="has_part"
+        name="has_part"
+        rows="5"
+        placeholder="comp_abc123..."
+      >{{ form.has_part }}</textarea>
+      <small>Identifiers of resources that are part of this asset.</small>
+    </div>
+
+    <div class="field">
+      <label for="relevant_to">Relevant to</label>
+      <textarea
+        id="relevant_to"
+        name="relevant_to"
+        rows="5"
+        placeholder="proj_abc123..."
+      >{{ form.relevant_to }}</textarea>
+    </div>
+
+    <div class="field">
+      <label for="relevant_resource">Relevant resource</label>
+      <textarea
+        id="relevant_resource"
+        name="relevant_resource"
+        rows="5"
+        placeholder="comp_abc123..."
+      >{{ form.relevant_resource }}</textarea>
+      <small>AIoD resource identifiers. For external URLs, use Relevant links.</small>
+    </div>
+  </div>
+
+  <div class="section-heading">
+    <h2>People and references</h2>
+    <p>Use one identifier per line. These fields usually reference AIoD contact records or publication identifiers.</p>
+  </div>
+
+  <div class="form-grid">
+    <div class="field">
+      <label for="contact">Contact</label>
+      <textarea
+        id="contact"
+        name="contact"
+        rows="5"
+        placeholder="con_abc123..."
+      >{{ form.contact }}</textarea>
+      <small>Contact identifiers for people or organisations.</small>
+    </div>
+
+    <div class="field">
+      <label for="creator">Creator</label>
+      <textarea
+        id="creator"
+        name="creator"
+        rows="5"
+        placeholder="con_abc123..."
+      >{{ form.creator }}</textarea>
+      <small>Contact identifiers of creators.</small>
+    </div>
+
+    <div class="field full">
+      <label for="citation">Citation</label>
+      <textarea
+        id="citation"
+        name="citation"
+        rows="4"
+        placeholder="10.1234/example-doi&#10;arXiv:1234.5678"
+      >{{ form.citation }}</textarea>
+      <small>Publication identifiers or bibliographic references.</small>
+    </div>
+  </div>
+
+  <div class="section-heading">
+    <h2>Links and source information</h2>
+  </div>
+
+  <div class="form-grid">
+    <div class="field full">
+      <label for="relevant_link">Relevant links</label>
+      <textarea
+        id="relevant_link"
+        name="relevant_link"
+        rows="4"
+        placeholder="https://example.org/documentation&#10;https://example.org/source-code&#10;https://example.org/archive-record"
+      >{{ form.relevant_link }}</textarea>
+      <small>External URLs. Use this when there is no more specific field.</small>
+    </div>
+
+    <div class="field full">
+      <label for="status_info">Status information URL</label>
+      <input
+        id="status_info"
+        name="status_info"
+        type="url"
+        maxlength="256"
+        value="{{ form.status_info }}"
+        placeholder="https://example.org/status"
+      >
+    </div>
+  </div>
+
+  <div class="section-heading">
+    <h2>Structured resources</h2>
+    <p>These schema fields expect JSON arrays of objects. Leave them as <code>[]</code> if unused.</p>
+  </div>
+
+  <div class="form-grid">
+    <div class="field full structured-section-field">
+      {% set distribution_prefix = "" %}
+      {% set distribution_json_value = form.distribution_json %}
+      {% include "partials/distribution_form.html" %}
+    </div>
+
+    <div class="field full structured-section-field">
+      {% set media_prefix = "" %}
+      {% set media_json_value = form.media_json %}
+      {% include "partials/media_form.html" %}
+    </div>
+
+    <div class="field full structured-section-field">
+      {% set note_prefix = "" %}
+      {% set note_json_value = form.note_json %}
+      {% include "partials/note_form.html" %}
+    </div>
+  </div>
+
+  <details class="advanced">
+    <summary>Advanced options</summary>
+
+    <div class="form-grid advanced-grid">
+      <div class="field">
+        <label for="api_version">SDK API version override</label>
+        <input
+          id="api_version"
+          name="api_version"
+          value="{{ form.api_version }}"
+          placeholder="Leave empty unless needed, e.g. v2 or v3"
+        >
+      </div>
+      <input type="hidden" id="aiod_entry_json" name="aiod_entry_json" value="{{ form.aiod_entry_json or '{}' }}">
+      <input type="hidden" id="extra_json" name="extra_json" value="{{ form.extra_json or '{}' }}">
+    </div>
+  </details>
+
+  <div class="actions">
+    <button type="submit" name="action" value="preview">Preview JSON</button>
+    <button class="primary" type="submit" name="action" value="submit">Register on AIoD</button>
+  </div>
+</form>
+
+  <aside class="card help-card">
+    <h2>Example values</h2>
+    <p class="muted">
+      This is only a neutral example. Do not submit it as-is.
+    </p>
+
+    <dl class="example-list">
+      <dt>Name</dt>
+      <dd>Secure Data Processing Service</dd>
+
+      <dt>Same as</dt>
+      <dd>https://example.org/resources/secure-data-processing-service</dd>
+
+      <dt>Version</dt>
+      <dd>1.0.0</dd>
+
+      <dt>License</dt>
+      <dd>Apache-2.0</dd>
+
+      <dt>Type</dt>
+      <dd>storage</dd>
+
+      <dt>Keywords</dt>
+      <dd>data processing, secure infrastructure, interoperability</dd>
+    </dl>
+
+    <div class="tip">
+      <strong>Tip:</strong>
+      if the API returns HTTP 400, check the "SDK response" section. The app now shows the actual API error body.
+    </div>
+
+    <div class="tip">
+      <strong>Project relation:</strong>
+      if the asset belongs to an AIoD Project, paste the Project identifier in the related field. It will be sent as <code>is_part_of</code>.
+    </div>
+  </aside>
+</section>
+
+{% if preview %}
+<section class="card">
+  <h2>Payload preview</h2>
+  <pre>{{ preview }}</pre>
+</section>
+{% endif %}
+
+{% endblock %}

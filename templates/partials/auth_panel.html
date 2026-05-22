@@ -1,0 +1,106 @@
+{% if auth_message %}
+  <div class="ok auth-message">{{ auth_message }}</div>
+{% endif %}
+
+<section class="auth-compact-layout">
+  <div class="card auth-status-card">
+    <div class="auth-panel-heading">
+      <div>
+        <h2>Auth Check</h2>
+      </div>
+
+      {% if ok %}
+        <span class="status-pill success">Authenticated</span>
+      {% else %}
+        <span class="status-pill warning">Not authenticated</span>
+      {% endif %}
+    </div>
+
+    <div class="auth-check-list" aria-label="Authentication checks">
+      <div class="auth-check-row {{ 'success' if ok else 'error' }}">
+        {% if ok %}
+          <span class="auth-check-icon success" aria-hidden="true"></span>
+        {% endif %}
+        <p>Authentication is {{ 'valid and ready to use.' if ok else 'incomplete or expired.' }}</p>
+      </div>
+
+      <div class="auth-check-row {{ 'success' if info.sdk.ok else 'error' }}">
+        {% if info.sdk.ok %}
+          <span class="auth-check-icon success" aria-hidden="true"></span>
+        {% endif %}
+        <p>SDK token {{ 'can identify the current user.' if info.sdk.ok else 'needs a new authentication flow.' }}</p>
+      </div>
+
+      <div class="auth-check-row {{ 'success' if info.rest.ok else 'error' }}">
+        {% if info.rest.ok %}
+          <span class="auth-check-icon success" aria-hidden="true"></span>
+        {% endif %}
+        <p>REST API token {{ 'is authorized for submit and review actions.' if info.rest.ok else 'is expired or not authorized.' }}</p>
+      </div>
+    </div>
+
+    <form method="post" action="/auth" class="auth-actions" data-auth-modal-form>
+      <button class="primary" type="submit" name="action" value="start_auth">
+        Start authentication
+      </button>
+
+      <button type="submit" name="action" value="clear_auth_output">
+        Clear output
+      </button>
+    </form>
+  </div>
+
+  <div class="card auth-flow-card" data-auth-running="{{ 'true' if auth_process.running else 'false' }}">
+    <div class="auth-panel-heading">
+      <div>
+        <h2>Authentication flow</h2>
+      </div>
+
+      {% if auth_process.running %}
+        <span class="status-pill running">Running</span>
+      {% elif auth_process.returncode == 0 %}
+        <span class="status-pill success">Completed</span>
+      {% elif auth_process.returncode is not none %}
+        <span class="status-pill warning">Finished</span>
+      {% else %}
+        <span class="status-pill neutral">Idle</span>
+      {% endif %}
+    </div>
+
+    {% set auth_url = namespace(value='') %}
+    {% for line in auth_process.output %}
+      {% for part in line.split() %}
+        {% if not auth_url.value and (part.startswith("http://") or part.startswith("https://")) %}
+          {% set auth_url.value = part %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+
+    {% if auth_url.value %}
+      <a class="button-link auth-link-button" href="{{ auth_url.value }}" target="_blank" rel="noopener noreferrer">
+        Open authentication link
+      </a>
+    {% elif auth_process.running %}
+      <div class="auth-flow-placeholder">Waiting for the authentication link...</div>
+    {% else %}
+      <div class="auth-flow-placeholder">Start authentication to generate the login link.</div>
+    {% endif %}
+
+    {% if auth_process.output %}
+      <div class="auth-output-compact" aria-label="Recent authentication output">
+        {% for line in auth_process.output[-5:] %}
+          <p>{{ line }}</p>
+        {% endfor %}
+      </div>
+    {% elif auth_process.error %}
+      <div class="auth-output-compact error" aria-label="Authentication error">
+        <p>{{ auth_process.error }}</p>
+      </div>
+    {% else %}
+      <div class="auth-output-compact empty" aria-label="Authentication output">
+        <p>No authentication flow started yet.</p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>

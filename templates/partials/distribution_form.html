@@ -1,0 +1,15 @@
+<details class="advanced media-section" data-resource-section data-resource-prefix="distribution">
+  <summary>Distribution (optional)</summary>
+
+  <p class="media-section-note">
+    All or part of an AI asset in downloadable form. Add one item for each downloadable resource.
+  </p>
+
+  <textarea id="{{ distribution_prefix }}distribution_json" name="distribution_json" hidden>{{ distribution_json_value or "[]" }}</textarea>
+
+  <div class="media-list" data-resource-list></div>
+
+  <button type="button" class="button-link media-add-button" data-resource-add>
+    Add distribution item
+  </button>
+</details>

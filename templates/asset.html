@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero compact">
+  <div>
+    <p class="eyebrow">Asset management</p>
+    <h1>Read or delete a Computational Asset</h1>
+    <p class="lead">
+      Retrieve an asset by its AIoD identifier. After reading it, you can edit or delete it from the Actions section.
+    </p>
+  </div>
+</section>
+
+<section class="card">
+  <form method="post" class="form-grid">
+    <div class="field">
+      <label for="identifier">Asset identifier *</label>
+      <input
+        id="identifier"
+        name="identifier"
+        value="{{ identifier }}"
+        required
+        placeholder="Example: comp_abc123..."
+      >
+      <small>Use the identifier returned by <code>register()</code>.</small>
+    </div>
+
+    <div class="field">
+      <label for="version">SDK API version override</label>
+      <input
+        id="version"
+        name="version"
+        value="{{ version }}"
+        placeholder="Leave empty unless needed, e.g. v2 or v3"
+      >
+    </div>
+
+    <div class="actions full">
+      <button class="primary" type="submit" name="action" value="read">Read asset</button>
+    </div>
+  </form>
+</section>
+
+{% if readable_error %}
+<section class="card error-card">
+  <h2>Operation failed</h2>
+  <div class="error-summary">
+    <strong>{{ readable_error.type }}</strong>
+    <p>{{ readable_error.message }}</p>
+  </div>
+
+  <details>
+    <summary>Show technical traceback</summary>
+    <pre class="traceback">{{ readable_error.traceback }}</pre>
+  </details>
+</section>
+{% elif error %}
+  <pre class="error readable-error">{{ error }}</pre>
+{% endif %}
+
+{% if delete_result %}
+<section class="card">
+  <h2>Delete result</h2>
+
+  {% if delete_result.remote_delete_status == "not_found" %}
+    <div class="warn">
+      <strong>Remote asset not found.</strong>
+      <p>
+        AIoD reports that this asset does not exist or is not accessible anymore.
+        The local history entry has still been removed if present.
+      </p>
+    </div>
+  {% elif delete_result.http_status_code and delete_result.http_status_code >= 400 %}
+    <div class="warn">
+      Delete request returned HTTP {{ delete_result.http_status_code }}. Check the response body below.
+    </div>
+  {% else %}
+    <div class="ok">
+      Delete request completed. The local upload history was also updated.
+    </div>
+  {% endif %}
+
+  {% if local_delete_result %}
+    <div class="local-delete-summary">
+      <strong>Local storage cleanup</strong>
+      <p>{{ local_delete_result.message }}</p>
+    </div>
+  {% endif %}
+
+  <details open>
+    <summary>Delete response details</summary>
+    <pre>{{ delete_result_json }}</pre>
+  </details>
+
+  {% if local_delete_result_json %}
+  <details>
+    <summary>Local cleanup details</summary>
+    <pre>{{ local_delete_result_json }}</pre>
+  </details>
+  {% endif %}
+
+  <p>
+    <a class="button-link" href="/local-assets">Back to Uploads</a>
+  </p>
+</section>
+{% endif %}
+
+{% if asset_data %}
+<section class="card">
+  <div class="asset-read-toolbar">
+    <div>
+      <h2>Actions</h2>
+      <p class="muted">Edit or delete this asset.</p>
+    </div>
+
+    <div class="asset-read-actions">
+      <button
+        type="button"
+        class="primary"
+        onclick="openAssetEditModal('{{ identifier }}')"
+      >
+        ✏️ Edit asset
+      </button>
+
+      <form method="post" class="inline-action-form">
+        <input type="hidden" name="identifier" value="{{ identifier }}">
+        <input type="hidden" name="version" value="{{ version }}">
+        <button
+          class="danger"
+          type="submit"
+          name="action"
+          value="delete"
+          onclick="return confirm('Delete this computational asset from AIoD and remove it from the local upload history?');"
+        >
+          Delete asset
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Asset metadata</h2>
+  <pre>{{ asset_json }}</pre>
+</section>
+
+{% include "partials/asset_edit_modal.html" %}
+<script src="{{ url_for('static', filename='asset_edit_modal.js') }}"></script>
+{% endif %}
+
+{% endblock %}

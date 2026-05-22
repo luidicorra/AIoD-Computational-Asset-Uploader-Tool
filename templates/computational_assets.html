@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero compact">
+  <div>
+    <p class="eyebrow">Catalogue browser</p>
+    <h1>Search Computational Assets</h1>
+    <p class="lead">
+      Browse visible Computational Assets from the AIoD catalogue and filter them locally by keyword.
+    </p>
+  </div>
+</section>
+
+<section class="card">
+  <form method="post" class="form-grid">
+    <div class="field">
+      <label for="query">Search text</label>
+      <input id="query" name="query" value="{{ query }}" placeholder="Name, identifier, URL, keyword...">
+    </div>
+
+    <div class="field">
+      <label for="version">SDK API version override</label>
+      <input id="version" name="version" value="{{ version }}" placeholder="Leave empty unless needed, e.g. v2 or v3">
+    </div>
+
+    <div class="field">
+      <label for="limit">Limit per page</label>
+      <input id="limit" name="limit" type="number" min="1" max="200" value="{{ limit }}">
+    </div>
+
+    <div class="actions full">
+      <button class="primary" type="submit">Search assets</button>
+    </div>
+  </form>
+</section>
+
+{% if error %}
+  <pre class="error">{{ error }}</pre>
+{% endif %}
+
+{% if data %}
+<section class="card">
+  <h2>Results</h2>
+
+  {% if data.results %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Asset</th>
+            <th>Identifier</th>
+            <th>Version</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data.results %}
+          <tr>
+            <td>
+              <strong>{{ row.name }}</strong>
+              {% if row.same_as %}
+                <div class="muted small">{{ row.same_as }}</div>
+              {% endif %}
+            </td>
+            <td><code>{{ row.identifier }}</code></td>
+            <td>{{ row.version }}</td>
+            <td>{{ row.status }}</td>
+            <td>
+              <form method="post" action="/asset" class="table-actions">
+                <input type="hidden" name="identifier" value="{{ row.identifier }}">
+                <input type="hidden" name="version" value="{{ version }}">
+                <button type="submit" name="action" value="read">Read</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h3>No assets found</h3>
+      <p>Try a broader query or leave the query empty to inspect the first catalogue results.</p>
+    </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Diagnostics</h2>
+  <pre>{{ data.diagnostics }}</pre>
+</section>
+{% endif %}
+
+{% endblock %}

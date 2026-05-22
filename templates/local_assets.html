@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Local history</p>
+    <h1>Uploads</h1>
+    <p class="lead">
+      Assets registered through this local uploader. This page reads the local transaction log and does not replace
+      the official AIoD “My Assets” view.
+    </p>
+  </div>
+</section>
+
+{% if message %}
+  <div class="ok">{{ message }}</div>
+{% endif %}
+
+{% if readable_error %}
+<section class="card error-card">
+  <h2>Operation failed</h2>
+  <div class="error-summary">
+    <strong>{{ readable_error.type }}</strong>
+    <p>{{ readable_error.message }}</p>
+  </div>
+
+  <details>
+    <summary>Show technical traceback</summary>
+    <pre class="traceback">{{ readable_error.traceback }}</pre>
+  </details>
+</section>
+{% elif error %}
+  <pre class="error readable-error">{{ error }}</pre>
+{% endif %}
+
+{% if operation_result %}
+<section class="card">
+  <h2>Operation result</h2>
+  <details>
+    <summary>Show details</summary>
+    <pre>{{ operation_result_json }}</pre>
+  </details>
+</section>
+{% endif %}
+
+{% set total_assets = data.results|length %}
+{% set confirmed_assets = data.results|selectattr("confirmed", "equalto", "True")|list|length %}
+{% set submitted_assets = data.results|selectattr("submitted", "equalto", "True")|list|length %}
+
+<section class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">Local records</span>
+    <strong>{{ total_assets }}</strong>
+    <span class="stat-note">Stored in the local log</span>
+  </div>
+
+  <div class="stat-card">
+    <span class="stat-label">Confirmed</span>
+    <strong>{{ confirmed_assets }}</strong>
+    <span class="stat-note">Verified after SDK registration</span>
+  </div>
+
+  <div class="stat-card">
+    <span class="stat-label">Submitted</span>
+    <strong>{{ submitted_assets }}</strong>
+    <span class="stat-note">Sent for AIoD review</span>
+  </div>
+</section>
+
+<section class="card local-card">
+  <div class="card-toolbar">
+    <div>
+      <h2>Uploaded through this app</h2>
+      <p>
+        Only assets created from this local machine are shown here. Uploads made by partners on other machines will not appear.
+      </p>
+    </div>
+  </div>
+
+  {% if data.diagnostics %}
+    <div class="local-diagnostics">
+      <div class="warn">
+        {% for item in data.diagnostics %}
+          <div>{{ item }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if data.results %}
+    <div class="asset-card-grid">
+      {% for row in data.results %}
+        <article class="upload-card">
+          <div class="upload-card-header">
+            <div class="upload-title-block">
+              <h3>{{ row.name or "Untitled asset" }}</h3>
+
+              {% if row.same_as %}
+                <a class="upload-card-link" href="{{ row.same_as }}" target="_blank" rel="noopener noreferrer">
+                  {{ row.same_as }}
+                </a>
+              {% endif %}
+            </div>
+
+            <div class="upload-card-badges">
+              {% if row.submitted == "True" %}
+                <span class="badge review">Submitted</span>
+              {% elif row.confirmed == "True" %}
+                <span class="badge success">Confirmed</span>
+              {% else %}
+                <span class="badge warning">Not confirmed</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="upload-card-body">
+            <div class="upload-identifier">
+              <span>Identifier</span>
+              <code>{{ row.identifier }}</code>
+            </div>
+
+            <div class="upload-meta-grid">
+              <div class="upload-meta-item">
+                <span>Created at</span>
+                <strong>{{ row.timestamp_utc }}</strong>
+              </div>
+
+              <div class="upload-meta-item">
+                <span>Version</span>
+                <strong>{{ row.version or "—" }}</strong>
+              </div>
+
+              <div class="upload-meta-item">
+                <span>Project</span>
+                <strong>
+                  {% if row.project and row.project != "[]" %}
+                    <code>{{ row.project }}</code>
+                  {% else %}
+                    —
+                  {% endif %}
+                </strong>
+              </div>
+
+              {% if row.submitted == "True" %}
+              <div class="upload-meta-item">
+                <span>Submission</span>
+                <strong>
+                  {% if row.submission_identifier %}
+                    {{ row.submission_identifier }}
+                  {% else %}
+                    Submitted
+                  {% endif %}
+                </strong>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="upload-card-actions {% if row.submitted == 'True' %}two-actions{% else %}four-actions{% endif %}">
+            <form method="post" action="/asset">
+              <input type="hidden" name="identifier" value="{{ row.identifier }}">
+              <button class="primary" type="submit" name="action" value="read">Read</button>
+            </form>
+
+            {% if row.submitted == "True" %}
+              <form method="post" action="/local-assets">
+                <input type="hidden" name="identifier" value="{{ row.identifier }}">
+                <input type="hidden" name="submission_identifier" value="{{ row.submission_identifier }}">
+                <button
+                  type="submit"
+                  name="action"
+                  value="retract"
+                  onclick="return confirm('Retract submission {{ row.submission_identifier }} for asset {{ row.identifier }}? The asset should return to draft state.');"
+                >
+                  Retract
+                </button>
+              </form>
+            {% else %}
+              <button
+                type="button"
+                class="icon-button"
+                title="Edit asset"
+                onclick="openAssetEditModal('{{ row.identifier }}')"
+              >
+                ✏️
+                <span>Edit</span>
+              </button>
+              <button
+                type="button"
+                onclick="openSubmitModal('{{ row.identifier }}')"
+              >
+                Submit
+              </button>
+
+              <form method="post" action="/local-assets">
+                <input type="hidden" name="identifier" value="{{ row.identifier }}">
+                <button
+                  class="danger ghost"
+                  type="submit"
+                  name="action"
+                  value="delete"
+                  onclick="return confirm('Delete asset {{ row.identifier }} from AIoD and remove it from local history?');"
+                >
+                  Delete
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state polished">
+      <div class="empty-icon">0</div>
+      <h3>No Uploads found</h3>
+      <p>
+        Successfully registered assets will appear here once the app writes them to
+        <code>aiod_upload_transactions.jsonl</code>.
+      </p>
+      <a class="button-link" href="/">Register a new asset</a>
+    </div>
+  {% endif %}
+</section>
+
+<div id="submitModal" class="modal-backdrop" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="submitModalTitle">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">Submit for review</p>
+        <h2 id="submitModalTitle">Submit asset to AIoD review</h2>
+      </div>
+      <button type="button" class="modal-close" onclick="closeSubmitModal()" aria-label="Close modal">
+        ×
+      </button>
+    </div>
+
+    <form method="post" action="/local-assets" class="modal-form">
+      <input type="hidden" name="action" value="submit">
+      <input type="hidden" id="submitModalIdentifier" name="identifier" value="">
+
+      <div class="field full">
+        <label for="submitComment">Comment optional</label>
+        <textarea
+          id="submitComment"
+          name="comment"
+          rows="5"
+          placeholder="Optional note for the reviewer, e.g. context, linked project, or publication details."
+        ></textarea>
+        <small>This comment will be sent in the submission payload.</small>
+      </div>
+
+      <div class="modal-target">
+        <span>Asset identifier</span>
+        <code id="submitModalIdentifierLabel"></code>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" onclick="closeSubmitModal()">Cancel</button>
+        <button class="primary" type="submit">
+          Submit for review
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openSubmitModal(identifier) {
+    const modal = document.getElementById("submitModal");
+    const input = document.getElementById("submitModalIdentifier");
+    const label = document.getElementById("submitModalIdentifierLabel");
+    const comment = document.getElementById("submitComment");
+
+    input.value = identifier;
+    label.textContent = identifier;
+    comment.value = "";
+
+    modal.hidden = false;
+    document.body.classList.add("modal-open");
+    comment.focus();
+  }
+
+  function closeSubmitModal() {
+    const modal = document.getElementById("submitModal");
+    modal.hidden = true;
+    document.body.classList.remove("modal-open");
+  }
+
+  document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+      closeSubmitModal();
+    }
+  });
+
+  document.getElementById("submitModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+      closeSubmitModal();
+    }
+  });
+</script>
+
+{% include "partials/asset_edit_modal.html" %}
+<script src="{{ url_for('static', filename='asset_edit_modal.js') }}"></script>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+<details class="advanced media-section" data-resource-section data-resource-prefix="media">
+  <summary>Media (optional)</summary>
+
+  <p class="media-section-note">
+    Images or videos depicting the resource or associated with it. Add one item for each media resource.
+  </p>
+
+  <textarea id="{{ media_prefix }}media_json" name="media_json" hidden>{{ media_json_value or "[]" }}</textarea>
+
+  <div class="media-list" data-resource-list></div>
+
+  <button type="button" class="button-link media-add-button" data-resource-add>
+    Add media item
+  </button>
+</details>

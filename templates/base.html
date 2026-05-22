@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AIoD SDK Uploader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark">A</span>
+        <span>
+          <strong>AIoD SDK Uploader</strong>
+          <small>Computational Asset Metadata Tool</small>
+        </span>
+      </a>
+
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="/" class="{% if request.path == '/' %}active{% endif %}">Asset form</a>
+        <a href="/projects" class="{% if request.path == '/projects' %}active{% endif %}">Projects</a>
+        <a href="/asset" class="{% if request.path == '/asset' %}active{% endif %}">Read / delete asset</a>
+        <a href="/computational-assets" class="{% if request.path == '/computational-assets' %}active{% endif %}">Catalogue assets</a>
+        <a href="/local-assets" class="{% if request.path == '/local-assets' %}active{% endif %}">Uploads</a>
+        <a href="/submissions" class="{% if request.path == '/submissions' %}active{% endif %}">Submissions</a>
+        <a href="/auth" class="{% if request.path == '/auth' %}active{% endif %}" data-auth-modal-open>Auth check</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <script id="researchAreaTermsData" type="application/json">{{ research_area_terms|tojson }}</script>
+  <script id="industrialSectorTermsData" type="application/json">{{ industrial_sector_terms|tojson }}</script>
+  <script id="scientificDomainTermsData" type="application/json">{{ scientific_domain_terms|tojson }}</script>
+  <div id="vocabularyInfoModal" class="modal-backdrop" hidden>
+    <div class="modal-card modal-card-wide vocabulary-modal-card" role="dialog" aria-modal="true" aria-labelledby="vocabularyInfoTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Controlled vocabulary</p>
+          <h2 id="vocabularyInfoTitle" data-vocabulary-title>Vocabulary</h2>
+        </div>
+        <button type="button" class="modal-close" data-vocabulary-close aria-label="Close modal">&times;</button>
+      </div>
+      <div class="vocabulary-modal-body">
+        <div class="vocabulary-term-list" data-vocabulary-list></div>
+        <div class="vocabulary-term-detail" data-vocabulary-detail></div>
+      </div>
+    </div>
+  </div>
+  <div id="authModal" class="modal-backdrop" hidden>
+    <div class="modal-card modal-card-wide auth-modal-card" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Authentication</p>
+          <h2 id="authModalTitle">AIoD SDK authentication</h2>
+        </div>
+        <button type="button" class="modal-close" data-auth-modal-close aria-label="Close modal">&times;</button>
+      </div>
+      <div id="authModalBody" class="auth-modal-body"></div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='multiselect.js') }}"></script>
+  <script src="{{ url_for('static', filename='searchable_select.js') }}"></script>
+  <script src="{{ url_for('static', filename='media_form.js') }}"></script>
+  <script src="{{ url_for('static', filename='note_form.js') }}"></script>
+  <script src="{{ url_for('static', filename='field_info.js') }}"></script>
+  <script src="{{ url_for('static', filename='term_info_modal.js') }}"></script>
+  <script src="{{ url_for('static', filename='auth_modal.js') }}"></script>
+</body>
+</html>

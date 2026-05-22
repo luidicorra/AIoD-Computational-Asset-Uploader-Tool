@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero compact">
+  <div>
+    <p class="eyebrow">Project lookup</p>
+    <h1>Find a Project identifier</h1>
+    <p class="lead">
+      Search visible AIoD Projects and copy the identifier to use it as <code>is_part_of</code>
+      in the Computational Asset form.
+    </p>
+  </div>
+</section>
+
+<section class="card">
+  <form method="post" class="form-grid">
+    <div class="field">
+      <label for="query">Project query</label>
+      <input id="query" name="query" value="{{ query }}" placeholder="Example: RoboSAPIENS">
+    </div>
+
+    <div class="field">
+      <label for="version">SDK API version override</label>
+      <input id="version" name="version" value="{{ version }}" placeholder="Leave empty unless needed, e.g. v2 or v3">
+    </div>
+
+    <div class="field">
+      <label for="limit">Limit</label>
+      <input id="limit" name="limit" type="number" min="1" max="200" value="{{ limit }}">
+    </div>
+
+    <div class="actions full">
+      <button class="primary" type="submit">Search projects</button>
+    </div>
+  </form>
+</section>
+
+{% if error %}
+  <pre class="error">{{ error }}</pre>
+{% endif %}
+
+{% if data %}
+<section class="card">
+  <h2>Results</h2>
+
+  {% if data.results %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>Identifier</th>
+            <th>Platform</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data.results %}
+          <tr>
+            <td>
+              <strong>{{ row.name }}</strong>
+              {% if row.description %}
+                <div class="muted small">{{ row.description }}</div>
+              {% endif %}
+            </td>
+            <td><code>{{ row.identifier }}</code></td>
+            <td>{{ row.platform }}</td>
+            <td>{{ row.source }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h3>No projects found</h3>
+      <p>
+        Draft projects may not appear in catalogue search. If you created the project yourself,
+        copy its identifier directly from the AIoD editor.
+      </p>
+    </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Diagnostics</h2>
+  <pre>{{ data.diagnostics }}</pre>
+
+  <details>
+    <summary>Raw response preview</summary>
+    <pre>{{ data.raw_blocks }}</pre>
+  </details>
+</section>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Review workflow</p>
+    <h1>Submissions</h1>
+    <p class="lead">
+      Review the submissions returned by the AIoD API. This page reads the remote submissions endpoint directly.
+    </p>
+  </div>
+</section>
+
+{% if readable_error %}
+<section class="card error-card">
+  <h2>Unable to load submissions</h2>
+  <div class="error-summary">
+    <strong>{{ readable_error.type }}</strong>
+    <p>{{ readable_error.message }}</p>
+  </div>
+
+  <p>
+    <a class="button-link" href="/auth" data-auth-modal-open>Go to Auth check</a>
+  </p>
+
+  <details>
+    <summary>Show technical traceback</summary>
+    <pre class="traceback">{{ readable_error.traceback }}</pre>
+  </details>
+</section>
+{% elif error %}
+  <pre class="error readable-error">{{ error }}</pre>
+{% endif %}
+
+{% if data %}
+  {% set raw = data.http_json %}
+  {% if raw is mapping %}
+    {% set submissions = raw.get("items") or raw.get("results") or raw.get("data") or raw.get("submissions") or [] %}
+  {% elif raw is sequence and raw is not string %}
+    {% set submissions = raw %}
+  {% else %}
+    {% set submissions = [] %}
+  {% endif %}
+
+  <section class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-label">HTTP status</span>
+      <strong>{{ data.http_status_code }}</strong>
+      <span class="stat-note">Response from AIoD</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Submissions</span>
+      <strong>{{ submissions|length }}</strong>
+      <span class="stat-note">Items parsed from response</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Source</span>
+      <strong class="stat-code">REST</strong>
+      <span class="stat-note"><code>/submissions</code></span>
+    </div>
+  </section>
+
+  <section class="card local-card">
+    <div class="card-toolbar">
+      <div>
+        <h2>Remote submissions</h2>
+        <p>
+          These entries come from the AIoD submissions API.
+        </p>
+      </div>
+    </div>
+
+    {% if submissions %}
+      <div class="submission-card-grid">
+        {% for item in submissions %}
+          {% set sid = item.get("submission_identifier") or item.get("identifier") or item.get("id") %}
+          {% set comment = item.get("comment") or "" %}
+
+          <article class="submission-card">
+            <div class="submission-card-header">
+              <div>
+                <h3>Submission {{ sid or "unknown" }}</h3>
+                <p class="muted">
+                  {% if item.get("decision_date") %}
+                    Decision date: {{ item.get("decision_date") }}
+                  {% elif item.get("created_at") %}
+                    Created: {{ item.get("created_at") }}
+                  {% else %}
+                    Remote submission record
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+
+            <div class="submission-body">
+              <div class="upload-identifier">
+                <span>Submission identifier</span>
+                <code>{{ sid or "not available" }}</code>
+              </div>
+
+              {% if comment %}
+                <div class="submission-comment">
+                  <span>Comment</span>
+                  <p>{{ comment }}</p>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="submission-actions">
+              {% if sid %}
+                <form method="post" action="/local-assets">
+                  <input type="hidden" name="submission_identifier" value="{{ sid }}">
+                  <input type="hidden" name="identifier" value="">
+                  <button
+                    type="submit"
+                    name="action"
+                    value="retract"
+                    onclick="return confirm('Retract submission {{ sid }}?');"
+                  >
+                    Retract
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state polished">
+        <div class="empty-icon">0</div>
+        <h3>No submissions parsed</h3>
+        <p>
+          The API responded successfully, but the app could not detect a standard list field.
+          Open the raw response below to inspect the structure.
+        </p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Raw API response</h2>
+    <details>
+      <summary>Show raw response</summary>
+      <pre>{{ data | tojson(indent=2) }}</pre>
+    </details>
+  </section>
+{% endif %}
+
+{% endblock %}

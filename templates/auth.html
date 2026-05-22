@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if auth_process and auth_process.running %}
+  <meta http-equiv="refresh" content="3">
+{% endif %}
+
+<section class="hero compact">
+  <div>
+    <p class="eyebrow">Authentication</p>
+    <h1>AIoD SDK authentication</h1>
+    <p class="lead">
+      Authenticate the local <code>aiondemand</code> SDK token directly from this web app.
+      The token will be saved by the SDK on this machine and reused by the uploader.
+    </p>
+  </div>
+</section>
+
+{% include "partials/auth_panel.html" %}
+
+{% endblock %}

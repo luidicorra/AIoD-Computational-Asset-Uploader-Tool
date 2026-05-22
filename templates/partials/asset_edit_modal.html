@@ -1,0 +1,287 @@
+<div id="assetEditModal" class="modal-backdrop" hidden>
+  <div class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-labelledby="assetEditModalTitle">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">Edit metadata</p>
+        <h2 id="assetEditModalTitle">Edit Computational Asset</h2>
+      </div>
+
+      <button type="button" class="modal-close" onclick="closeAssetEditModal()" aria-label="Close modal">
+        &times;
+      </button>
+    </div>
+
+    <form id="assetEditForm" class="modal-form">
+      <input type="hidden" id="edit_identifier" name="identifier">
+      <input type="hidden" id="edit_api_version" name="api_version">
+
+      <div id="assetEditStatus" class="modal-status" hidden></div>
+
+      <div class="warn">
+        <strong>Update warning.</strong>
+        <p>
+          This uses <code>PUT /computational_assets/{identifier}</code>. Review the fields carefully before updating.
+        </p>
+      </div>
+
+      <div class="form-grid modal-edit-grid">
+        <div class="field full">
+          <label for="edit_name">Name *</label>
+          <input id="edit_name" name="name" required>
+        </div>
+
+        <div class="field full">
+          <div class="field-label-row">
+            <label for="edit_description_plain">Description plain text *</label>
+            <button
+              class="vocabulary-info-button field-info-button"
+              type="button"
+              data-field-help="Description is an object with plain and html text. Ideally only one format is filled, or both contain the same content with different formatting."
+              aria-label="Show information about description"
+            >i</button>
+          </div>
+          <textarea id="edit_description_plain" name="description_plain" rows="5" maxlength="65535" required></textarea>
+        </div>
+
+        <div class="field full">
+          <label for="edit_description_html">Description HTML</label>
+          <textarea id="edit_description_html" name="description_html" rows="5" maxlength="65535"></textarea>
+          <small>Optional. Use only when HTML formatting is needed.</small>
+        </div>
+
+        <div class="field">
+          <label for="edit_same_as">Canonical URL / Same as *</label>
+          <input id="edit_same_as" name="same_as" type="url" required>
+        </div>
+
+        <div class="field">
+          <label for="edit_project_identifier">Related Project identifier</label>
+          <input id="edit_project_identifier" name="project_identifier">
+        </div>
+
+        <div class="field">
+          <label for="edit_date_published">Date published</label>
+          <input id="edit_date_published" name="date_published" type="date">
+        </div>
+
+        <div class="field">
+          <label for="edit_asset_version">Version</label>
+          <input id="edit_asset_version" name="asset_version">
+        </div>
+
+        <div class="field">
+          <label for="edit_license">License</label>
+          <select
+            id="edit_license"
+            name="license"
+            class="searchable-select"
+            data-search-placeholder="Search licenses"
+            data-empty-label="No license selected"
+            data-search-label="Search licenses"
+          >
+            <option value="">Select a license</option>
+            {% if license_options %}
+              {% for option in license_options %}
+                <option value="{{ option.value }}">{{ option.label }}</option>
+              {% endfor %}
+            {% else %}
+              <option disabled>Licenses could not be loaded from AIoD.</option>
+            {% endif %}
+          </select>
+          <small>Controlled AIoD vocabulary loaded from <code>/licenses</code>.</small>
+        </div>
+
+        <div class="field">
+          <label for="edit_asset_type">Computational asset type</label>
+          <select
+            id="edit_asset_type"
+            name="asset_type"
+            class="searchable-select"
+            data-search-placeholder="Search computational asset types"
+            data-empty-label="No computational asset type selected"
+            data-search-label="Search computational asset types"
+          >
+            <option value="">Select a computational asset type</option>
+            {% if computational_asset_type_options %}
+              {% for option in computational_asset_type_options %}
+                <option value="{{ option.value }}">{{ option.label }}</option>
+              {% endfor %}
+            {% else %}
+              <option disabled>Computational asset types could not be loaded from AIoD.</option>
+            {% endif %}
+          </select>
+          <small>Controlled AIoD vocabulary loaded from <code>/computational_asset_types</code>.</small>
+        </div>
+
+        <div class="field check full">
+          <label>
+            <input id="edit_is_accessible_for_free" type="checkbox" name="is_accessible_for_free">
+            Is accessible for free
+          </label>
+        </div>
+
+        <div class="field">
+          <label for="edit_keyword">Keywords <span>one per line</span></label>
+          <textarea id="edit_keyword" name="keyword" rows="5"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="edit_alternate_name">Alternate names <span>one per line</span></label>
+          <textarea id="edit_alternate_name" name="alternate_name" rows="5"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="edit_application_area">Application areas <span>controlled vocabulary</span></label>
+          <select id="edit_application_area" name="application_area" class="multi-select" multiple size="8">
+            {% if application_area_options %}
+              {% for option in application_area_options %}
+                <option value="{{ option.value }}">{{ option.label }}</option>
+              {% endfor %}
+            {% else %}
+              <option disabled>Application areas could not be loaded from AIoD.</option>
+            {% endif %}
+          </select>
+          <small>Controlled AIoD vocabulary loaded from <code>/application_areas</code>.</small>
+        </div>
+
+        <div class="field">
+          <div class="field-label-row">
+            <label for="edit_industrial_sector">Industrial sectors <span>controlled vocabulary</span></label>
+            <button class="vocabulary-info-button" type="button" data-vocabulary-info="industrialSector" aria-label="Open industrial sector reference">i</button>
+          </div>
+          <select id="edit_industrial_sector" name="industrial_sector" class="multi-select" multiple size="8">
+            {% if industrial_sector_options %}
+              {% for option in industrial_sector_options %}
+                <option value="{{ option.value }}">{{ option.label }}</option>
+              {% endfor %}
+            {% else %}
+              <option disabled>Industrial sectors could not be loaded from AIoD.</option>
+            {% endif %}
+          </select>
+          <small>Top-level AIoD industrial sector terms loaded from <code>/industrial_sectors</code>.</small>
+        </div>
+
+        <div class="field">
+          <div class="field-label-row">
+            <label for="edit_research_area">Research areas <span>controlled vocabulary</span></label>
+            <button class="vocabulary-info-button" type="button" data-vocabulary-info="researchArea" aria-label="Open research area reference">i</button>
+          </div>
+          <select id="edit_research_area" name="research_area" class="multi-select" multiple size="8">
+            {% if research_area_options %}
+              {% for option in research_area_options %}
+                <option value="{{ option.value }}">{{ option.label }}</option>
+              {% endfor %}
+            {% else %}
+              <option disabled>Research areas could not be loaded from AIoD.</option>
+            {% endif %}
+          </select>
+          <small>Top-level AIoD research area terms loaded from <code>/research_areas</code>.</small>
+        </div>
+
+        <div class="field">
+          <div class="field-label-row">
+            <label for="edit_scientific_domain">Scientific domains <span>controlled vocabulary</span></label>
+            <button class="vocabulary-info-button" type="button" data-vocabulary-info="scientificDomain" aria-label="Open scientific domain reference">i</button>
+          </div>
+          <select id="edit_scientific_domain" name="scientific_domain" class="multi-select" multiple size="8">
+            {% if scientific_domain_options %}
+              {% for option in scientific_domain_options %}
+                <option value="{{ option.value }}">{{ option.label }}</option>
+              {% endfor %}
+            {% else %}
+              <option disabled>Scientific domains could not be loaded from AIoD.</option>
+            {% endif %}
+          </select>
+          <small>Top-level AIoD scientific domain terms loaded from <code>/scientific_domains</code>.</small>
+        </div>
+		
+		<div class="field full">
+		  <h3>Relations</h3>
+		  <small>Use one AIoD identifier per line.</small>
+		</div>
+
+		<div class="field">
+		  <label for="edit_is_part_of">Is part of <span>one per line</span></label>
+		  <textarea id="edit_is_part_of" name="is_part_of" rows="5"></textarea>
+		</div>
+
+		<div class="field">
+		  <label for="edit_has_part">Has part <span>one per line</span></label>
+		  <textarea id="edit_has_part" name="has_part" rows="5"></textarea>
+		</div>
+
+		<div class="field">
+		  <label for="edit_relevant_to">Relevant to <span>one per line</span></label>
+		  <textarea id="edit_relevant_to" name="relevant_to" rows="5"></textarea>
+		</div>
+
+		<div class="field">
+		  <label for="edit_relevant_resource">Relevant resource <span>one per line</span></label>
+		  <textarea id="edit_relevant_resource" name="relevant_resource" rows="5"></textarea>
+		  <small>AIoD resource identifiers. For external URLs, use Relevant links.</small>
+		</div>
+
+		<div class="field full">
+		  <h3>People and references</h3>
+		  <small>Use one identifier or reference per line.</small>
+		</div>
+
+		<div class="field">
+		  <label for="edit_contact">Contact <span>one per line</span></label>
+		  <textarea id="edit_contact" name="contact" rows="5"></textarea>
+		</div>
+
+		<div class="field">
+		  <label for="edit_creator">Creator <span>one per line</span></label>
+		  <textarea id="edit_creator" name="creator" rows="5"></textarea>
+		</div>
+
+		<div class="field full">
+		  <label for="edit_citation">Citation <span>one per line</span></label>
+		  <textarea id="edit_citation" name="citation" rows="4"></textarea>
+		</div>
+
+        <div class="field full">
+          <label for="edit_relevant_link">Relevant links <span>one per line</span></label>
+          <textarea id="edit_relevant_link" name="relevant_link" rows="4"></textarea>
+        </div>
+
+        <div class="field full">
+          <label for="edit_status_info">Status information URL</label>
+          <input id="edit_status_info" name="status_info" type="url">
+        </div>
+
+        <div class="field full">
+		  <h3>Structured resources</h3>
+		  <small>These fields expect JSON arrays. Leave them as <code>[]</code> if unused.</small>
+		</div>
+
+		<div class="field full structured-section-field">
+          {% set distribution_prefix = "edit_" %}
+          {% set distribution_json_value = "[]" %}
+          {% include "partials/distribution_form.html" %}
+		</div>
+
+		<div class="field full structured-section-field">
+          {% set media_prefix = "edit_" %}
+          {% set media_json_value = "[]" %}
+          {% include "partials/media_form.html" %}
+		</div>
+
+		<div class="field full structured-section-field">
+          {% set note_prefix = "edit_" %}
+          {% set note_json_value = "[]" %}
+          {% include "partials/note_form.html" %}
+		</div>
+
+        <input type="hidden" id="edit_aiod_entry_json" name="aiod_entry_json" value="{}">
+        <input type="hidden" id="edit_extra_json" name="extra_json" value="{}">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" onclick="closeAssetEditModal()">Cancel</button>
+        <button class="primary" type="submit">Update asset</button>
+      </div>
+    </form>
+  </div>
+</div>
